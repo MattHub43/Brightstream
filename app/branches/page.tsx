@@ -21,15 +21,22 @@ export default function BranchesPage() {
     fetchBranches({ limit: pageSize, skip: page * pageSize })
   );
 
+  const rows = data ?? [];
+  const hasNext = rows.length >= pageSize;
+
   return (
-    <div className="container">
+    <div className="page">
       {isLoading && <LoadingOverlay label="Loading branches..." />}
 
-      <section className="card">
-        <div className="section-header">
-          <h2 className="section-title">All branches</h2>
-          <div className="controls">
-            <label className="label small">Page size</label>
+      <header className="page-head">
+        <div>
+          <h1 className="page-title">All branches</h1>
+          <p className="page-subtitle">Browse every branch in the directory.</p>
+        </div>
+
+        <div className="head-actions">
+          <div className="field">
+            <label className="label">Page size</label>
             <select
               className="select"
               value={pageSize}
@@ -46,26 +53,36 @@ export default function BranchesPage() {
             </select>
           </div>
         </div>
+      </header>
+
+      <section className="panel">
+        <div className="panel-top">
+          <div className="pager">
+            <button
+              className="btn"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Prev
+            </button>
+
+            <span className="muted">Page {page + 1}</span>
+
+            <button className="btn" disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </button>
+          </div>
+        </div>
 
         {error && <p className="error">Failed to load branches.</p>}
 
-        <div className="pager">
-          <button className="btn" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-            Prev
-          </button>
-          <span className="muted">Page {page + 1}</span>
-          <button className="btn" disabled={(data ?? []).length < pageSize} onClick={() => setPage((p) => p + 1)}>
-            Next
-          </button>
-        </div>
-
-        <div className="branch-list">
-          {(data ?? []).map((b) => (
+        <div className="grid">
+          {rows.map((b) => (
             <BranchCard key={b.id} branch={b} />
           ))}
         </div>
 
-        {!isLoading && (data ?? []).length === 0 && <p className="muted">No branches found.</p>}
+        {!isLoading && rows.length === 0 && <p className="muted">No branches found.</p>}
       </section>
     </div>
   );
