@@ -47,7 +47,7 @@ export default function NavBar() {
       </nav>
 
       {/* Mobile nav */}
-      <div className="nav-mobile" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="nav-mobile">
         {pathname !== "/" && (
           <button
             type="button"

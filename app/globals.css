@@ -329,7 +329,7 @@ a{ color: inherit; text-decoration: none; }
 
 /* Default: mobile first */
 .nav-desktop{ display: none; }
-.nav-mobile{ display: flex; }
+.nav-mobile{ display: flex; align-items: center; gap: 8px; }
 
 /* Hamburger button */
 .icon-btn{
