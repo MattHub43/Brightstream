@@ -2,18 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/search", label: "Search" },
   { href: "/countries", label: "Countries" },
   { href: "/branches", label: "All Branches" },
-  { href: "/settings", label: "Settings" },
+  
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const items = useMemo(
@@ -42,13 +43,22 @@ export default function NavBar() {
           ))}
         </div>
 
-        <Link href="/search" className="btn-primary">
-          Get Started
-        </Link>
+       
       </nav>
 
       {/* Mobile nav */}
-      <div className="nav-mobile">
+      <div className="nav-mobile" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {pathname !== "/" && (
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Go back"
+            onClick={() => router.back()}
+            style={{ fontSize: 18, fontWeight: 700 }}
+          >
+            ←
+          </button>
+        )}
         <button
           type="button"
           className="icon-btn"
@@ -76,9 +86,7 @@ export default function NavBar() {
           </div>
 
           <div className="mobile-cta">
-            <Link href="/search" className="btn-primary" onClick={() => setOpen(false)}>
-              Get Started
-            </Link>
+            
           </div>
         </div>
       )}

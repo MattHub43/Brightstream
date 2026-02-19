@@ -8,16 +8,21 @@ function mapsLink(branch: Branch) {
 
 export default function BranchCard({
   branch,
-  showDistance = false,
+  showDistance,
 }: {
   branch: Branch & { distanceMiles?: number | null };
   showDistance?: boolean;
 }) {
+  // Default: show distance automatically if it exists
+  const shouldShowDistance =
+    typeof showDistance === "boolean" ? showDistance : typeof branch.distanceMiles === "number";
+
   return (
     <div className="branch-card">
       <div className="branch-card-header">
         <h3 className="branch-name">{branch.name}</h3>
-        {showDistance && typeof branch.distanceMiles === "number" && (
+
+        {shouldShowDistance && typeof branch.distanceMiles === "number" && (
           <span className="pill">{branch.distanceMiles.toFixed(1)} mi</span>
         )}
       </div>

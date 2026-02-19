@@ -144,3 +144,50 @@ export async function fetchCountries(): Promise<Country[]> {
     .map(([code, name]) => ({ code, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+function toRad(deg: number) {
+  return (deg * Math.PI) / 180;
+}
+
+function haversineMiles(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
+  // Earth radius in miles
+  const R = 3958.7613;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const s1 = Math.sin(dLat / 2);
+  const s2 = Math.sin(dLon / 2);
+  const aa =
+    s1 * s1 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * (s2 * s2);
+  const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+  return R * c;
+}
+
+/**
+ * Nearest-branch search (client-side).
+ * We can only fetch up to 100 due to Graph limit, so this is "best effort".
+ */
+export async function fetchNearestBranches(opts: {
+  lat: number;
+  lng: number;
+  limit?: number;        // how many to return
+  fetchLimit?: number;   // how many to fetch (max 100)
+}): Promise<(Branch & { distanceMiles?: number })[]> {
+  const limit = Math.max(1, Math.min(opts.limit ?? 10, 50));
+  const fetchLimit = clampLimit(opts.fetchLimit ?? 100);
+
+  const origin = { lat: opts.lat, lon: opts.lng };
+
+  const all = await fetchBranches({ limit: fetchLimit });
+
+  const withDistance = all
+    .map((b) => {
+      if (!b.coordinates) return null;
+      const d = haversineMiles(origin, b.coordinates);
+      return { ...b, distanceMiles: d };
+    })
+    .filter(Boolean) as (Branch & { distanceMiles: number })[];
+
+  withDistance.sort((x, y) => x.distanceMiles - y.distanceMiles);
+
+  return withDistance.slice(0, limit);
+}

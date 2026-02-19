@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import BranchCard from "@/components/BranchCard";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import BranchCard from "@/components/BranchCard";
 import { fetchBranches } from "@/lib/graph";
+import { computeDistanceMiles, sortByDistance } from "@/lib/geo";
+import type { Branch } from "@/lib/types";
 
 function getDefaultPageSize() {
   const env = Number(process.env.NEXT_PUBLIC_DEFAULT_PAGE_SIZE || "50");
@@ -14,6 +16,8 @@ function getDefaultPageSize() {
 export default function BranchesPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(getDefaultPageSize());
+  const [geo, setGeo] = useState<{ lat: number; lon: number } | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   const key = useMemo(() => ["branches", page, pageSize], [page, pageSize]);
 
@@ -21,68 +25,65 @@ export default function BranchesPage() {
     fetchBranches({ limit: pageSize, skip: page * pageSize })
   );
 
-  const rows = data ?? [];
-  const hasNext = rows.length >= pageSize;
+  function onUseMyLocation() {
+    setGeoError(null);
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation is not supported by your browser.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      (err) => setGeoError(err.message || "Unable to get your location."),
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  }
+
+  const rows = useMemo(() => {
+    const branches = data ?? [];
+    if (!geo) return branches.map((b) => ({ ...b, distanceMiles: undefined }));
+
+    const withDist = branches.map((b) => ({
+      ...b,
+      distanceMiles: computeDistanceMiles(geo, b.coordinates) ?? undefined,
+    }));
+
+    const hasDist = withDist.filter((b): b is Branch & { distanceMiles: number } =>
+      typeof b.distanceMiles === "number"
+    );
+    const noDist = withDist.filter((b) => typeof b.distanceMiles !== "number");
+
+    return [...sortByDistance(hasDist), ...noDist];
+  }, [data, geo]);
 
   return (
     <div className="page">
       {isLoading && <LoadingOverlay label="Loading branches..." />}
 
-      <header className="page-head">
-        <div>
-          <h1 className="page-title">All branches</h1>
-          <p className="page-subtitle">Browse every branch in the directory.</p>
+      <section className="hero" style={{ paddingTop: 36, paddingBottom: 20 }}>
+        <div className="hero-kicker" />
+        <h1 className="hero-title">All Branches</h1>
+        <p className="hero-subtitle">Browse every location.</p>
+        <div className="center-row" style={{ marginTop: 16 }}>
+          <button className="btn-primary" type="button" onClick={onUseMyLocation}>
+            {geo ? "Location set ✓" : "Sort by distance"}
+          </button>
         </div>
+        {geoError && <p className="error" style={{ textAlign: "center", marginTop: 10 }}>{geoError}</p>}
+      </section>
 
-        <div className="head-actions">
-          <div className="field">
-            <label className="label">Page size</label>
-            <select
-              className="select"
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(0);
-              }}
-            >
-              {[25, 50, 100, 200].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+      <section className="section">
+        <div className="panel">
+
+          {error && <p className="error">Failed to load branches.</p>}
+
+          <div>
+            {rows.map((b) => (
+              <BranchCard key={b.id} branch={b} />
+            ))}
           </div>
+
+          {!isLoading && rows.length === 0 && <p className="muted">No branches found.</p>}
         </div>
-      </header>
-
-      <section className="panel">
-        <div className="panel-top">
-          <div className="pager">
-            <button
-              className="btn"
-              disabled={page === 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              Prev
-            </button>
-
-            <span className="muted">Page {page + 1}</span>
-
-            <button className="btn" disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </button>
-          </div>
-        </div>
-
-        {error && <p className="error">Failed to load branches.</p>}
-
-        <div className="grid">
-          {rows.map((b) => (
-            <BranchCard key={b.id} branch={b} />
-          ))}
-        </div>
-
-        {!isLoading && rows.length === 0 && <p className="muted">No branches found.</p>}
       </section>
     </div>
   );

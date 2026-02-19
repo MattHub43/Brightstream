@@ -1,126 +1,154 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import BranchCard from "@/components/BranchCard";
-import CountryCard from "@/components/CountryCard";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import { fetchBranches, fetchCountries } from "@/lib/graph";
-import { computeDistanceMiles, sortByDistance } from "@/lib/geo";
-import type { Branch } from "@/lib/types";
+import { fetchCountries, fetchNearestBranches } from "@/lib/graph";
+
+// Put US first, then alphabetical
+function sortCountries(list: { code: string; name: string }[]) {
+  return [...list].sort((a, b) => {
+    if (a.code === "US") return -1;
+    if (b.code === "US") return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+// flagcdn.com provides flag images for every ISO 3166-1 alpha-2 code — always works
+function countryImageUrl(code: string, _name: string) {
+  return `https://flagcdn.com/w640/${code.toLowerCase()}.jpg`;
+}
 
 export default function HomePage() {
   const [zip, setZip] = useState("");
-  const [geo, setGeo] = useState<{ lat: number; lon: number } | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
 
-  const { data: countries, isLoading: countriesLoading, error: countriesError } = useSWR(
-    "countries",
+  const [nearby, setNearby] = useState<any[] | null>(null);
+  const [nearLoading, setNearLoading] = useState(false);
+  const [nearError, setNearError] = useState<string | null>(null);
+
+  const { data: countriesRaw, isLoading: countriesLoading, error: countriesError } = useSWR(
+    ["countries"],
     () => fetchCountries()
   );
 
-  const { data: branchesForNearest, isLoading: nearestLoading, error: nearestError, mutate: refetchNearest } =
-    useSWR(geo ? ["nearest", geo.lat, geo.lon] : null, async () => {
-      const branches = await fetchBranches({ limit: 200 });
-      return branches;
-    });
+  const countries = useMemo(() => sortCountries(countriesRaw ?? []), [countriesRaw]);
 
-  const nearest = useMemo(() => {
-    if (!geo || !branchesForNearest) return [];
-    const withDistance = branchesForNearest
-      .map((b) => {
-        const dist = computeDistanceMiles(geo, b.coordinates);
-        return { ...b, distanceMiles: dist };
-      })
-      .filter((b) => typeof b.distanceMiles === "number");
-    return sortByDistance(withDistance as (Branch & { distanceMiles: number })[]).slice(0, 5);
-  }, [geo, branchesForNearest]);
+  async function useMyLocation() {
+    setNearError(null);
+    setNearLoading(true);
+    setNearby(null);
 
-  function onUseMyLocation() {
-    setGeoError(null);
-    if (!navigator.geolocation) {
-      setGeoError("Geolocation is not supported by your browser.");
+    if (!("geolocation" in navigator)) {
+      setNearError("Geolocation is not supported in this browser.");
+      setNearLoading(false);
       return;
     }
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-        refetchNearest();
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          // Returns branches sorted by true Haversine distance (we add this in graph.ts)
+          const results = await fetchNearestBranches({ lat, lng, limit: 10, fetchLimit: 100 });
+          setNearby(results);
+        } catch (e: any) {
+          setNearError(e?.message ?? "Failed to load nearby branches.");
+        } finally {
+          setNearLoading(false);
+        }
       },
-      (err) => setGeoError(err.message || "Unable to get your location."),
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => {
+        setNearError(err?.message || "Location permission denied.");
+        setNearLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30_000 }
     );
   }
 
   return (
-    <div className="container">
-      {(countriesLoading || nearestLoading) && <LoadingOverlay label="Loading..." />}
+    <div>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-kicker" />
+        <h1 className="hero-title">Find Your Nearest Branch</h1>
+        <p className="hero-subtitle">We'll use your location to find the closest branch to you</p>
 
-      <section className="card hero-card">
-        <div className="hero-grid">
-          <div>
-            <h2 className="section-title">Quick actions</h2>
-            <p className="muted">Use location for nearest branches, or search by ZIP, city, or name.</p>
+        <div className="center-row">
+          <button className="btn-primary" type="button" onClick={useMyLocation} disabled={nearLoading}>
+            {nearLoading ? "Locating…" : "Use My Location"}
+          </button>
+        </div>
 
-            <div className="actions-row">
-              <button className="btn primary" onClick={onUseMyLocation}>
-                Use my location
-              </button>
-              <a className="btn" href="/search">
-                Go to search
-              </a>
-              <a className="btn" href="/branches">
-                Browse all
-              </a>
-            </div>
+        {nearError && (
+          <p className="error" style={{ textAlign: "center", marginTop: 14 }}>
+            {nearError}
+          </p>
+        )}
+      </section>
 
-            <form className="zip-form" action="/search" method="GET">
-              <label className="label">Search by ZIP</label>
-              <div className="input-row">
-                <input
-                  className="input"
-                  name="q"
-                  placeholder="e.g., 10001"
-                  value={zip}
-                  onChange={(e) => setZip(e.target.value)}
-                />
-                <button className="btn primary" type="submit" disabled={!zip.trim()}>
-                  Search
-                </button>
-              </div>
-              <p className="hint">Tip: you can also search by city or branch name.</p>
-            </form>
+      {/* NEARBY RESULTS */}
+      {nearLoading && <LoadingOverlay label="Finding nearest branches..." />}
+      {nearby && (
+        <section className="section">
+          <h2 className="section-title">Nearest Branches</h2>
+          <p className="section-subtitle">Based on your current location</p>
 
-            {geoError && <p className="error">{geoError}</p>}
-            {nearestError && <p className="error">Failed to load branches for nearest calculation.</p>}
+          <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
+            {nearby.map((b) => (
+              // BranchCard will show distance automatically now
+              <BranchCard key={b.id ?? `${b.name}-${b.zipCode ?? ""}`} branch={b} />
+            ))}
           </div>
 
-          <div>
-            <h2 className="section-title">Nearest branches</h2>
-            {!geo && <p className="muted">Click “Use my location” to see closest branches.</p>}
-            {geo && nearest.length === 0 && <p className="muted">No nearby branches found (or missing coordinates).</p>}
+          {nearby.length === 0 && <p className="section-subtitle">No nearby branches found.</p>}
+        </section>
+      )}
 
-            <div className="branch-list">
-              {nearest.map((b) => (
-                <BranchCard key={b.id} branch={b} showDistance />
-              ))}
-            </div>
-          </div>
+      {/* ZIP */}
+      <section className="section">
+        <h2 className="section-title">Search by Zip Code</h2>
+
+        <div className="zip-row">
+          <input
+            className="input"
+            name="zip"
+            autoComplete="postal-code"
+            value={zip}
+            onChange={(e) => setZip(e.target.value)}
+            placeholder="Enter zip code..."
+            inputMode="numeric"
+          />
+          <Link className="btn" href={zip.trim() ? `/search?q=${encodeURIComponent(zip.trim())}` : "/search"}>
+            Find Branches
+          </Link>
         </div>
       </section>
 
-      <section className="card">
-        <div className="section-header">
-          <h2 className="section-title">Browse by country</h2>
-          <a className="link" href="/countries">
-            View all
-          </a>
-        </div>
+      {/* COUNTRIES */}
+      <section className="section">
+        <h2 className="section-title">Browse by Country</h2>
+        <p className="section-subtitle">Select a country to view all branch locations</p>
 
+        {countriesLoading && <LoadingOverlay label="Loading countries..." />}
         {countriesError && <p className="error">Failed to load countries.</p>}
+
         <div className="country-grid">
-          {(countries ?? []).slice(0, 12).map((c) => (
-            <CountryCard key={c.code} country={c} />
+          {countries.map((c) => (
+            <Link
+              key={c.code}
+              href={`/countries/${encodeURIComponent(c.code)}`}
+              className="country-photo"
+              style={{ backgroundImage: `url(${countryImageUrl(c.code, c.name)})` }}
+            >
+              <div className="country-photo-inner">
+                <h3 className="country-photo-title">{c.name}</h3>
+                <div className="country-photo-link">View branches</div>
+              </div>
+            </Link>
           ))}
         </div>
       </section>
