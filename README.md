@@ -1,7 +1,5 @@
 # Brightstream Branch Locator (Next.js)
 
-A take-home skeleton for a bank branch locator web app powered by the Optimizely GraphQL Content Graph endpoint.
-
 ## What this includes
 
 - Next.js App Router (React + TypeScript)
@@ -13,36 +11,25 @@ A take-home skeleton for a bank branch locator web app powered by the Optimizely
   - Country detail: branches filtered by country code
   - All Branches: simple pagination
 - SWR for client caching
-- Your existing CSS ported into `styles/globals.css` (with small safe additions)
 
-## Setup
 
-1) Install dependencies
+## Optimizely GpahQL Headless Branch Finder Approach 
 
-```bash
-npm install
-```
+- Use the GrpahiQL interface to determine what data is available and what is not.
+- Research best options for geolocation and distance calculation like HTML% Geo API and Haversine formula.
+- Use AI to help determine edge cases for desktop and mobile including security 
+- Reviewed Brightstream example urls for style and design reference.
+- Used AI to pull css data from example sites 
+- created a quick simple POC app using Google Apps Script to enter API to return data and test graphQA queries, and other needed APIs. No more than 30min.
+- Once POC is working, create skeleton next.js app and us AI to update that with the functions from the POC and style previously aquired .
+- Run and test locally and use claude "Code" to help with testing and debugging and committing to git.
+- Review AI generated code and make any changes
+- commit changed to git branch using Claude Code. 
+- Use Claude Code for any lingering bugs found in branch testing.
+- Push changes to main in git and deploy in vercel.
 
-2) Add environment variables
 
-Copy `.env.example` to `.env` and set:
-
-- `OPTIMIZELY_GRAPH_AUTH=...`
-
-```bash
-cp .env.example .env
-```
-
-3) Run the app
-
-```bash
-npm run dev
-```
-
-Open http://localhost:3000
-
-## Notes
-
-- Authentication (user login) is not required by the assignment, but the Graph auth key is protected server-side.
-- "Nearest branches" computes distances client-side using branch coordinates (if present).
-- Countries are derived by sampling up to 1000 branches and deduplicating Country/CountryCode pairs.
+## Observations and roadblocks:
+- The Optimizely Content Graph BranchWhereInput doesn't support filtering on any of the custom fields (Name, City, ZipCode, Country). The only thing that works is getAllBranches with no where clause. Solution: fetch all branches once, do all filtering client-side.
+- Can't use country code server-side for anything
+- State information not available in the Optimizely GraphQL provided 
