@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import BranchCard from "@/components/BranchCard";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -11,10 +12,16 @@ import type { Branch } from "@/lib/types";
 
 export default function SearchClient() {
   const sp = useSearchParams();
-  const initial = sp.get("q") ?? "";
-  const [q, setQ] = useState(initial);
+  const router = useRouter();
+  const urlQ = sp.get("q") ?? "";
+  const [q, setQ] = useState(urlQ);
   const [geo, setGeo] = useState<{ lat: number; lon: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Keep input in sync when the URL ?q= param changes (e.g. coming from homepage ZIP form)
+  useEffect(() => {
+    setQ(urlQ);
+  }, [urlQ]);
 
   const key = useMemo(() => {
     const term = q.trim();
@@ -25,6 +32,13 @@ export default function SearchClient() {
   const { data, isLoading, error } = useSWR(key, async () => {
     return searchBranches({ term: q.trim(), limit: 100 });
   });
+
+  function handleSearch() {
+    const term = q.trim();
+    if (term) {
+      router.replace(`/search?q=${encodeURIComponent(term)}`);
+    }
+  }
 
   function onUseMyLocation() {
     setGeoError(null);
@@ -70,12 +84,13 @@ export default function SearchClient() {
             placeholder="e.g., Tampa, 10001, Brightstream"
             value={q}
             onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <button className="btn primary" onClick={() => {}}>
+          <button className="btn primary" onClick={handleSearch}>
             Search
           </button>
           <button className="btn" type="button" onClick={onUseMyLocation}>
-            {geo ? "Location set" : "Near me"}
+            {geo ? "Location set ✓" : "Near me"}
           </button>
         </div>
 
