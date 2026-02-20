@@ -19,7 +19,7 @@ async function postGraph<T>(query: string, variables?: Record<string, unknown>):
   return json.data;
 }
 
-// Limit Helper (Optimizely Graph enforces 0..100)
+// graph API max is 100
 const MAX_LIMIT = 100;
 const clampLimit = (n?: number) => Math.min(Math.max(n ?? 50, 0), MAX_LIMIT);
 
@@ -74,7 +74,6 @@ function includesCI(haystack: string | null | undefined, needle: string) {
   return haystack.toLowerCase().includes(needle);
 }
 
-// Keep signature compatible; skip is ignored (no server paging)
 export async function fetchBranches(opts: { limit: number; skip?: number }): Promise<Branch[]> {
   const data = await postGraph<{ Branch: { items: any[] } }>(QUERY_BRANCHES, {
     limit: clampLimit(opts.limit),
@@ -82,15 +81,11 @@ export async function fetchBranches(opts: { limit: number; skip?: number }): Pro
   return (data.Branch?.items ?? []).map(mapBranch);
 }
 
-/**
- * Search is implemented client-side because this schema does not allow filtering by Country/CountryCode
- * (and may restrict other where fields too).
- */
+// Filtering is done client-side since the schema doesn't support where clauses on these fields
 export async function searchBranches(opts: { term: string; limit: number; skip?: number }): Promise<Branch[]> {
   const term = (opts.term ?? "").trim().toLowerCase();
   if (!term) return [];
 
-  // Fetch up to 100 and filter locally
   const all = await fetchBranches({ limit: clampLimit(opts.limit) });
 
   return all.filter((b) => {
@@ -105,9 +100,7 @@ export async function searchBranches(opts: { term: string; limit: number; skip?:
   });
 }
 
-/**
- * Country filtering is implemented client-side because BranchWhereInput does not support Country/CountryCode.
- */
+// Same as above — country filtering has to happen after the fetch
 export async function fetchBranchesByCountry(opts: {
   country: string;
   limit: number;
@@ -123,7 +116,7 @@ export async function fetchBranchesByCountry(opts: {
 export async function fetchCountries(): Promise<Country[]> {
   const data = await postGraph<{ Branch: { items: Array<{ Country?: string; CountryCode?: string }> } }>(
     QUERY_COUNTRIES,
-    { limit: clampLimit(1000) } // becomes 100
+    { limit: clampLimit(1000) }
   );
 
   const map = new Map<string, string>();
@@ -132,7 +125,6 @@ export async function fetchCountries(): Promise<Country[]> {
     const name = (item.Country ?? "").trim();
     if (!name) continue;
 
-    // Prefer CountryCode if present; otherwise generate a stable slug from name
     const code =
       (item.CountryCode ?? "").trim().toUpperCase() ||
       name.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
@@ -144,12 +136,12 @@ export async function fetchCountries(): Promise<Country[]> {
     .map(([code, name]) => ({ code, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+
 function toRad(deg: number) {
   return (deg * Math.PI) / 180;
 }
 
 function haversineMiles(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
-  // Earth radius in miles
   const R = 3958.7613;
   const dLat = toRad(b.lat - a.lat);
   const dLon = toRad(b.lon - a.lon);
@@ -162,15 +154,12 @@ function haversineMiles(a: { lat: number; lon: number }, b: { lat: number; lon: 
   return R * c;
 }
 
-/**
- * Nearest-branch search (client-side).
- * We can only fetch up to 100 due to Graph limit, so this is "best effort".
- */
+// Fetches branches and sorts them by distance from the given coordinates
 export async function fetchNearestBranches(opts: {
   lat: number;
   lng: number;
-  limit?: number;        // how many to return
-  fetchLimit?: number;   // how many to fetch (max 100)
+  limit?: number;
+  fetchLimit?: number;
 }): Promise<(Branch & { distanceMiles?: number })[]> {
   const limit = Math.max(1, Math.min(opts.limit ?? 10, 50));
   const fetchLimit = clampLimit(opts.fetchLimit ?? 100);

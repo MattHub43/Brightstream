@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-//import "@/styles/globals.css";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 

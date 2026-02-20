@@ -10,13 +10,12 @@ export default function CountryDetailPage() {
   const params = useParams<{ code: string }>();
   const code = String(params.code || "").toUpperCase();
 
-  // 1) Load the country list so we can map route "code" -> country name
+  // resolve the code to a name first, then fetch branches by name
   const { data: countries, isLoading: countriesLoading } = useSWR("countries", fetchCountries);
 
   const selected = (countries ?? []).find((c) => c.code.toUpperCase() === code);
   const countryName = selected?.name ?? null;
 
-  // 2) Now fetch branches by *country name* (since CountryCode isn't filterable)
   const {
     data: branches,
     isLoading: branchesLoading,

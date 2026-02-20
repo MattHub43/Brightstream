@@ -17,7 +17,7 @@ function toRad(v: number) {
 
 export function computeDistanceMiles(from: { lat: number; lon: number }, to: Coordinates): number | null {
   if (!to) return null;
-  const R = 3958.8; // miles
+  const R = 3958.8;
   const dLat = toRad(to.lat - from.lat);
   const dLon = toRad(to.lon - from.lon);
   const a =

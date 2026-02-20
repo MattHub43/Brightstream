@@ -13,7 +13,6 @@ export default function BranchCard({
   branch: Branch & { distanceMiles?: number | null };
   showDistance?: boolean;
 }) {
-  // Default: show distance automatically if it exists
   const shouldShowDistance =
     typeof showDistance === "boolean" ? showDistance : typeof branch.distanceMiles === "number";
 

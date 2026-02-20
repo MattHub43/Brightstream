@@ -18,7 +18,7 @@ export default function SearchClient() {
   const [geo, setGeo] = useState<{ lat: number; lon: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
 
-  // Keep input in sync when the URL ?q= param changes (e.g. coming from homepage ZIP form)
+  // sync input when navigating here from the ZIP form on the homepage
   useEffect(() => {
     setQ(urlQ);
   }, [urlQ]);

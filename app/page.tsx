@@ -7,7 +7,6 @@ import BranchCard from "@/components/BranchCard";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { fetchCountries, fetchNearestBranches } from "@/lib/graph";
 
-// Put US first, then alphabetical
 function sortCountries(list: { code: string; name: string }[]) {
   return [...list].sort((a, b) => {
     if (a.code === "US") return -1;
@@ -16,7 +15,6 @@ function sortCountries(list: { code: string; name: string }[]) {
   });
 }
 
-// flagcdn.com provides flag images for every ISO 3166-1 alpha-2 code — always works
 function countryImageUrl(code: string, _name: string) {
   return `https://flagcdn.com/w640/${code.toLowerCase()}.jpg`;
 }
@@ -51,8 +49,6 @@ export default function HomePage() {
         try {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-
-          // Returns branches sorted by true Haversine distance (we add this in graph.ts)
           const results = await fetchNearestBranches({ lat, lng, limit: 10, fetchLimit: 100 });
           setNearby(results);
         } catch (e: any) {
@@ -71,7 +67,6 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* HERO */}
       <section className="hero">
         <div className="hero-kicker" />
         <h1 className="hero-title">Find Your Nearest Branch</h1>
@@ -90,7 +85,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* NEARBY RESULTS */}
       {nearLoading && <LoadingOverlay label="Finding nearest branches..." />}
       {nearby && (
         <section className="section">
@@ -99,7 +93,6 @@ export default function HomePage() {
 
           <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
             {nearby.map((b) => (
-              // BranchCard will show distance automatically now
               <BranchCard key={b.id ?? `${b.name}-${b.zipCode ?? ""}`} branch={b} />
             ))}
           </div>
@@ -108,7 +101,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ZIP */}
       <section className="section">
         <h2 className="section-title">Search by Zip Code</h2>
 
@@ -128,7 +120,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* COUNTRIES */}
       <section className="section">
         <h2 className="section-title">Browse by Country</h2>
         <p className="section-subtitle">Select a country to view all branch locations</p>

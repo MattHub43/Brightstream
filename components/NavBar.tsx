@@ -29,7 +29,6 @@ export default function NavBar() {
 
   return (
     <div className="nav-wrap">
-      {/* Desktop nav */}
       <nav className="nav-desktop" aria-label="Primary">
         <div className="nav-links">
           {items.map((l) => (
@@ -46,7 +45,6 @@ export default function NavBar() {
        
       </nav>
 
-      {/* Mobile nav */}
       <div className="nav-mobile">
         {pathname !== "/" && (
           <button
