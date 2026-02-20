@@ -2,34 +2,56 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
+import { useSearchParams } from "next/navigation";
 import BranchCard from "@/components/BranchCard";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { searchBranches } from "@/lib/graph";
 import { computeDistanceMiles, sortByDistance } from "@/lib/geo";
-import { useSearchParams } from "next/navigation";
 import type { Branch } from "@/lib/types";
 
 export default function SearchClient() {
   const sp = useSearchParams();
   const router = useRouter();
   const urlQ = sp.get("q") ?? "";
+
   const [q, setQ] = useState(urlQ);
+  const [results, setResults] = useState<Branch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [geo, setGeo] = useState<{ lat: number; lon: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
 
-  // sync input when navigating here from the ZIP form on the homepage
+  // Keep the input in sync when arriving via URL (e.g. homepage ZIP form)
   useEffect(() => {
     setQ(urlQ);
   }, [urlQ]);
 
-  // SWR key is driven by the URL param — changing the URL always triggers a fresh fetch
-  const key = urlQ.trim() ? ["search", urlQ.trim()] : null;
+  // Live search — fires 300ms after the user stops typing
+  useEffect(() => {
+    const term = q.trim();
+    if (!term) {
+      setResults([]);
+      setIsLoading(false);
+      return;
+    }
 
-  const { data, isLoading, error } = useSWR(
-    key,
-    ([, term]: [string, string]) => searchBranches({ term, limit: 100 })
-  );
+    setIsLoading(true);
+    setSearchError(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await searchBranches({ term, limit: 100 });
+        setResults(data);
+      } catch (e: any) {
+        setSearchError(e?.message ?? "Search failed. Please try again.");
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [q]);
 
   function handleSearch() {
     const term = q.trim();
@@ -51,11 +73,10 @@ export default function SearchClient() {
     );
   }
 
-  const results = useMemo(() => {
-    const branches = data ?? [];
-    if (!geo) return branches.map((b) => ({ ...b, distanceMiles: undefined }));
+  const sortedResults = useMemo(() => {
+    if (!geo) return results.map((b) => ({ ...b, distanceMiles: undefined }));
 
-    const withDist = branches.map((b) => ({
+    const withDist = results.map((b) => ({
       ...b,
       distanceMiles: computeDistanceMiles(geo, b.coordinates) ?? undefined,
     }));
@@ -66,7 +87,7 @@ export default function SearchClient() {
     const noDist = withDist.filter((b) => typeof b.distanceMiles !== "number");
 
     return [...sortByDistance(hasDist), ...noDist];
-  }, [data, geo]);
+  }, [results, geo]);
 
   return (
     <div className="container">
@@ -84,7 +105,7 @@ export default function SearchClient() {
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <button className="btn primary" onClick={handleSearch}>
+          <button className="btn" onClick={handleSearch}>
             Search
           </button>
           <button className="btn" type="button" onClick={onUseMyLocation}>
@@ -93,16 +114,16 @@ export default function SearchClient() {
         </div>
 
         {geoError && <p className="error">{geoError}</p>}
-        {error && <p className="error">Search failed. Please try again.</p>}
-        {!urlQ.trim() && <p className="muted">Enter a search term to see results.</p>}
+        {searchError && <p className="error">{searchError}</p>}
+        {!q.trim() && <p className="muted">Enter a search term to see results.</p>}
 
         <div className="branch-list">
-          {results.map((b) => (
+          {sortedResults.map((b) => (
             <BranchCard key={b.id} branch={b} />
           ))}
         </div>
 
-        {urlQ.trim() && results.length === 0 && !isLoading && (
+        {q.trim() && sortedResults.length === 0 && !isLoading && (
           <p className="muted">No results found.</p>
         )}
       </section>

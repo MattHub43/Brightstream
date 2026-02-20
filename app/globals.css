@@ -282,11 +282,18 @@ a{ color: inherit; text-decoration: none; }
   background: rgba(255,255,255,0.06);
   backdrop-filter: blur(18px) saturate(160%);
   border: 1px solid rgba(255,255,255,0.10);
-  border-left: 4px solid var(--gold);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 22px 22px;
+  transition-property: transform; /* Specify which property to transition */
+  transition-duration: 0.3s;      /* How long the transition takes (e.g., 0.3 seconds) */
+  transition-timing-function: ease-out;
 }
 .branch-card + .branch-card{ margin-top: 14px; }
+
+.branch-card:hover{
+  transform: translateY(-4px);
+   box-shadow: 0 30px 60px rgba(10,22,40,0.10);
+}
 
 .branch-card-header{
   display:flex;
@@ -429,9 +436,7 @@ a{ color: inherit; text-decoration: none; }
 
 /* Search / branches page */
 .card{
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(18px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.10);
+
   border-radius: var(--radius);
   padding: 32px;
 }
