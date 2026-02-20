@@ -23,14 +23,11 @@ export default function SearchClient() {
     setQ(urlQ);
   }, [urlQ]);
 
-  const key = useMemo(() => {
-    const term = q.trim();
-    if (!term) return null;
-    return ["search", term];
-  }, [q]);
+  // drive the SWR key from the URL param so navigation always triggers a fetch
+  const key = urlQ.trim() ? (["search", urlQ.trim()] as const) : null;
 
-  const { data, isLoading, error } = useSWR(key, async () => {
-    return searchBranches({ term: q.trim(), limit: 100 });
+  const { data, isLoading, error } = useSWR(key, async ([, term]) => {
+    return searchBranches({ term, limit: 100 });
   });
 
   function handleSearch() {
