@@ -102,7 +102,7 @@ export default function HomePage() {
       )}
 
       <section className="section">
-        <h2 className="section-title">Search by Zip Code</h2>
+        <h2 className="section-title">Search by name, city, country, or ZIP code</h2>
 
         <div className="zip-row">
           <input
@@ -111,8 +111,8 @@ export default function HomePage() {
             autoComplete="postal-code"
             value={zip}
             onChange={(e) => setZip(e.target.value)}
-            placeholder="Enter zip code..."
-            inputMode="numeric"
+            placeholder="e.g., Tampa, 10001, Brightstream"
+            inputMode="text"
           />
           <Link className="btn" href={zip.trim() ? `/search?q=${encodeURIComponent(zip.trim())}` : "/search"}>
             Find Branches
