@@ -15,13 +15,16 @@
 
 ## Optimizely GpahQL Headless Branch Finder Approach 
 
-- Use the GrpahiQL interface to determine what data is available and what is not.
-- Research best options for geolocation and distance calculation like HTML% Geo API and Haversine formula.
+- Browse and query using the GrpahiQL interface to determine what data is available and what formats.
+- Research best options for geolocation and distance calculation like HTML5 Geo API and Haversine formula.
 - Use AI to help determine edge cases for desktop and mobile including security 
 - Reviewed Brightstream example urls for style and design reference.
-- Used AI to pull css data from example sites 
-- created a quick simple POC app using Google Apps Script to enter API to return data and test graphQA queries, and other needed APIs. No more than 30min.
-- Once POC is working, create skeleton next.js app and us AI to update that with the functions from the POC and style previously aquired .
+- Used AI to pull css data from example sites then check code and make tweeks.  
+- Created a quick simple POC app using Google Apps Script to enter API to return data and test graphQA queries, and other needed APIs. No more than 30min.
+- Once POC is working,
+-   Create git repo
+-   create skeleton next.js
+-   Use AI to update next with the functions from the POC and style previously aquired.
 - Run and test locally and use claude "Code" to help with testing and debugging and committing to git.
 - Review AI generated code and make any changes
 - commit changed to git branch using Claude Code. 
@@ -30,6 +33,9 @@
 
 
 ## Observations and roadblocks:
-- The Optimizely Content Graph BranchWhereInput doesn't support filtering on any of the custom fields (Name, City, ZipCode, Country). The only thing that works is getAllBranches with no where clause. Solution: fetch all branches once, do all filtering client-side.
+- The Optimizely Content Graph BranchWhereInput doesn't support filtering on any of the custom fields (Name, City, ZipCode, Country).
+-   The only thing that works is getAllBranches with no where clause.
+-   Solution: fetch all branches once, do all filtering client-side.
 - Can't use country code server-side for anything
-- State information not available in the Optimizely GraphQL provided 
+- State information not available in the Optimizely GraphQL provided
+- Robots.txt blocking AI from being able to grab CSS and HTML file for quick styling. 
