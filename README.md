@@ -5,8 +5,8 @@
 - Next.js App Router (React + TypeScript)
 - `/api/graph` proxy route to keep the Graph auth key server-side
 - Pages:
-  - Home: geolocation → nearest branches, ZIP quick search, country preview
-  - Search: name/city/country/ZIP search
+  - Home: geolocation → nearest branches, quick search, country preview
+  - Search: name/city/country/ZIP search - predictive search
   - Countries: browse countries
   - Country detail: branches filtered by country code
   - All Branches: simple pagination
@@ -25,12 +25,12 @@
   -   Create git repo
   -   create skeleton next.js
   -   Use AI to update next with the functions from the POC and style previously aquired.
-  -   Use Visual Studio Code to update local dev in real-time
+- use Visual Studio Code to update local dev in real-time for testing and code tweeks
 - Run and test locally and use claude "Code" to help with testing and debugging and committing to git.
 - Review AI generated code and make any changes
 - commit changed to git branch using Claude Code. 
 - Use Claude Code for any lingering bugs found in branch testing.
-- Push changes to main in git and deploy in vercel.
+- Push changes to main in git and confirm deploy in vercel.
 
 
 ## Observations and roadblocks:
