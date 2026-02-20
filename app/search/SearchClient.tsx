@@ -23,12 +23,13 @@ export default function SearchClient() {
     setQ(urlQ);
   }, [urlQ]);
 
-  // drive the SWR key from the URL param so navigation always triggers a fetch
-  const key = urlQ.trim() ? (["search", urlQ.trim()] as const) : null;
+  // SWR key is driven by the URL param — changing the URL always triggers a fresh fetch
+  const key = urlQ.trim() ? ["search", urlQ.trim()] : null;
 
-  const { data, isLoading, error } = useSWR(key, async ([, term]) => {
-    return searchBranches({ term, limit: 100 });
-  });
+  const { data, isLoading, error } = useSWR(
+    key,
+    ([, term]: [string, string]) => searchBranches({ term, limit: 100 })
+  );
 
   function handleSearch() {
     const term = q.trim();
@@ -93,7 +94,7 @@ export default function SearchClient() {
 
         {geoError && <p className="error">{geoError}</p>}
         {error && <p className="error">Search failed. Please try again.</p>}
-        {!q.trim() && <p className="muted">Enter a search term to see results.</p>}
+        {!urlQ.trim() && <p className="muted">Enter a search term to see results.</p>}
 
         <div className="branch-list">
           {results.map((b) => (
@@ -101,7 +102,7 @@ export default function SearchClient() {
           ))}
         </div>
 
-        {q.trim() && results.length === 0 && !isLoading && (
+        {urlQ.trim() && results.length === 0 && !isLoading && (
           <p className="muted">No results found.</p>
         )}
       </section>
