@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import BranchCard from "@/components/BranchCard";
@@ -20,7 +21,13 @@ function countryImageUrl(code: string, _name: string) {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [zip, setZip] = useState("");
+
+  function handleSearch() {
+    const term = zip.trim();
+    if (term) router.push(`/search?q=${encodeURIComponent(term)}`);
+  }
 
   const [nearby, setNearby] = useState<any[] | null>(null);
   const [nearLoading, setNearLoading] = useState(false);
@@ -111,6 +118,7 @@ export default function HomePage() {
             autoComplete="postal-code"
             value={zip}
             onChange={(e) => setZip(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="e.g., Tampa, 10001, Brightstream"
             inputMode="text"
           />
